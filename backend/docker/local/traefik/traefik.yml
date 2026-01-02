@@ -1,0 +1,29 @@
+api: # api refers to Traefik’s internal management API.
+  dashboard: true # dashboard defined automatically by traefik
+  insecure: true # access the dashboard without authentication (useful for development only) dont use it in production
+
+log: # Traefik internal logs such as (Startup & shutdown)
+  format: json
+  level: DEBUG
+
+accessLog: # HTTP request logs (Client IP ,Method & path)
+  format: json
+  filePath: /var/log/traefik/access.log
+
+middlewares:
+  retry:  # First 'retry' → your chosen name
+    retry: # Second 'retry' → Traefik knows how to handle this
+      attempts: 3 
+      initialInterval: "500ms"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker/docker.sock"  # Path to the Docker socket inside the Traefik container.
+    network: nextgen_local_nw                       # the network we specified for our containers
+    watch: true                                     # Traefik continuously watches Docker  container events
+    exposedByDefault: false                         # only expose what we need explicitly 
+
+
+entryPoints:  # Represents network endpoints Traefik listens on
+  web:        # a manual name u specify for that entrypoint
+    address: ":80"  # :80 → listen on all network interfaces on port 80.

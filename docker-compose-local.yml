@@ -1,4 +1,67 @@
 services:
+  traefik:
+    image: docker.io/traefik:v3.2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      # mounting docker.sock is the channel or permission for traefik to talk to docker
+      # docker.sock -> Unix socket that lets clients talk to the Docker daemon.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./backend/docker/local/traefik/traefik.yml:/etc/traefik/traefik.yml
+    networks:
+      - nextgen_local_nw
+    command:
+      # tells traefik to talk to docker to know  the active containers
+      # Traefik to use Docker as a config source
+      #Watch Docker containers and  their labels to figure out routing dynamically.
+      - --providers.docker
+  api: &api 
+    build:
+      context: . 
+      dockerfile: ./backend/docker/local/fastapi/Dockerfile
+    volumes:
+      - .:/src
+      - ./backend/app/logs:/src/backend/app/logs
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - ./.envs/.env.local
+    depends_on:
+      - postgres
+      - mailpit
+    
+    #/start.sh is in the root file in the container 
+    command: /start.sh
+    networks:
+      - nextgen_local_nw
+    
+    labels:
+      - "traefik.enable=true" # traefik will manage this container
+      - "traefik.http.routers.api.entrypoints=web" # “Router api will listen on the web entrypoint (port 80).”
+      - "traefik.http.routers.api.rule=Host(`api.localhost`)" #reach that container through this url
+      - "traefik.http.routers.api.services=api-service" #  Router 'api' sends traffic to service 'api-service'
+      - "traefik.http.services.api-service.loadbalancer.server.port=8000" #Set container port for api-service
+      - "traefik.service.api-service.loadbalancer.healthcheck.path=/health"
+      - "traefik.service.api-service.loadbalancer.healthcheck.interval=30s"
+      - "traefik.service.api-service.loadbalancer.healthcheck.timeout=5s" # how long to wait before saying the container is unhealthy
+  
+  mailpit:
+    image: docker.io/axllent/mailpit:v1.20.3
+    ports:
+      - "8025:8025" # Web UI for viewing emails
+      - "1025:1025" # SMTP port for sending emails
+    volumes:
+      - nextgen_mailpit_data:/data
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATA_FILE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1 # Accept any login, no username/password check
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1 # Allow login over unencrypted (plain text) connection
+    networks:
+      - nextgen_local_nw
   postgres:
     build:
       context: . 
@@ -21,3 +84,4 @@ networks:
 
 volumes:
   nextgen_local_db:
+  nextgen_mailpit_data:

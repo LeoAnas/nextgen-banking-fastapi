@@ -14,11 +14,11 @@ class Settings(BaseSettings):
     POSTGRES_USER_NAME:str=""
     POSTGRES_PASSWORD:str=""
     POSTGRES_HOST:str=""
-    POSTGRES_PORT:int=int("")
+    POSTGRES_PORT:int=0
     @computed_field
     @property
-    def POSTGRES_URL(self)->PostgresDsn:
-       return PostgresDsn.build(scheme="postgresql+asyncpg",host=self.POSTGRES_HOST,port=self.POSTGRES_PORT,username=self.POSTGRES_USER_NAME,password=self.POSTGRES_PASSWORD,path="nextgen")
+    def POSTGRES_URL(self)->str:
+       return str(PostgresDsn.build(scheme="postgresql+asyncpg",host=self.POSTGRES_HOST,port=self.POSTGRES_PORT,username=self.POSTGRES_USER_NAME,password=self.POSTGRES_PASSWORD,path="nextgen"))
 
 
 settings=Settings()
