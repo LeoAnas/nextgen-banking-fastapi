@@ -18,7 +18,7 @@ middlewares:
 
 providers:
   docker:
-    endpoint: "unix:///var/run/docker/docker.sock"  # Path to the Docker socket inside the Traefik container.
+    endpoint: "unix:///var/run/docker.sock"  # Path to the Docker socket inside the Traefik container.
     network: nextgen_local_nw                       # the network we specified for our containers
     watch: true                                     # Traefik continuously watches Docker  container events
     exposedByDefault: false                         # only expose what we need explicitly 
